@@ -42,6 +42,19 @@ namespace DriveQuickstart
 
             string LastModifiedUnixDate = "LastRan.txt";
             DateTime DateTimeProgramLastRan = new DateTime(0);
+
+            string LastModifiedToken = "token.txt";
+            string TokenData = "";
+            try
+            {
+                using (var ProgramInfo = new StreamReader(LastModifiedToken, Encoding.UTF8))
+                {
+                    TokenData = ProgramInfo.ReadLine();
+                }
+            }
+            catch (Exception ex)
+            { }
+
             try
             {
                 using (var ProgramInfo = new StreamReader(LastModifiedUnixDate, Encoding.UTF8))
@@ -66,13 +79,45 @@ namespace DriveQuickstart
             });
 
             // Define parameters of request.
+
+            List<Google.Apis.Drive.v3.Data.File> AllFiles = new List<Google.Apis.Drive.v3.Data.File>();
+            
+            if (string.IsNullOrEmpty(TokenData) == false)
+            {
+                ChangesResource.ListRequest ModifiedOnlyList = service.Changes.List(TokenData);
+                string NextPageToken = "";
+                do
+                {
+
+                    var execute = ModifiedOnlyList.Execute();
+                    //  ModifiedOnlyList.Fields = "nextPageToken, files(id, mimeType, name, parents, modifiedTime  )";
+                    ChangesResource item;
+
+                    execute = ModifiedOnlyList.Execute();
+                    NextPageToken = execute.NextPageToken;
+
+                    foreach (var entry in execute.Changes)
+                    {
+                        if (entry.File != null)
+                        {
+                            AllFiles.Add(entry.File);
+                        }
+
+                    }
+                    ModifiedOnlyList = service.Changes.List(execute.NextPageToken);
+
+                } while (string.IsNullOrEmpty(NextPageToken) == false);
+                
+            }
+
             FilesResource.ListRequest listRequest = service.Files.List();
             listRequest.PageSize = 1000;
             listRequest.Fields = "nextPageToken, files(id, mimeType, name, parents, modifiedTime  )";
-            listRequest.OrderBy = "modifiedTime";
+            listRequest.OrderBy = "modifiedTime desc";
+
             // List files.
             FileList ListAll;
-            List<Google.Apis.Drive.v3.Data.File> AllFiles = new List<Google.Apis.Drive.v3.Data.File>();
+            
             do
             {
                 ListAll = listRequest.Execute();
@@ -80,7 +125,13 @@ namespace DriveQuickstart
                 
                 foreach (var file in files)
                 {
-                    AllFiles.Add(file);
+                    if (file.ModifiedTime.Value > DateTimeProgramLastRan)
+                    {
+                        if (file != null) {
+                            AllFiles.Add(file);
+                        }
+                        
+                    }
                 }
                 listRequest.PageToken = ListAll.NextPageToken;
 
@@ -89,9 +140,6 @@ namespace DriveQuickstart
             
             Console.WriteLine("Files:");
             
-            
-            
-
 
             foreach (var file in AllFiles)
             {
@@ -126,8 +174,7 @@ namespace DriveQuickstart
                             if (CanDoComparison) {
                                 if (Enumerable.SequenceEqual(file.Parents, ExistingFile.Parents))
                                 {
-                                    if (ExistingFile.ModifiedTime > DateTimeProgramLastRan)
-                                    {
+                                    
                                         try 
                                         {
                                             service.Files.Delete(ExistingFile.Id).Execute();
@@ -142,7 +189,7 @@ namespace DriveQuickstart
                                         }
                                         
                                     }
-                                }
+                                
                             }
                         }
                     }
@@ -163,9 +210,13 @@ namespace DriveQuickstart
                         }
                     }
 
-                    using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedUnixDate, false))
+                    using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedToken, false))
                     {
-                        NewFileWrite.WriteLine(DateTime.Now.Ticks);
+                        var response = service.Changes.GetStartPageToken().Execute();
+
+                        Console.WriteLine("Start token: " + response.StartPageTokenValue);
+
+                        NewFileWrite.WriteLine(response.StartPageTokenValue);
                     }
                     Console.WriteLine(file.Name);
                 }
