@@ -219,10 +219,16 @@ namespace DriveQuickstart
                         NewFileWrite.WriteLine(response.StartPageTokenValue);
                     }
                     Console.WriteLine(file.Name);
+
+                    using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedUnixDate, false))
+                    {
+                        NewFileWrite.WriteLine(DateTime.Now.Ticks);
+                    }
+                    Console.WriteLine(file.Name);
                 }
 
-               
 
+                
             }
         }
     }
