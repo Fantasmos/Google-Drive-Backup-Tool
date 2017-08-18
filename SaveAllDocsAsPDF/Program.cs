@@ -117,7 +117,7 @@ namespace DriveQuickstart
 
             // List files.
             FileList ListAll;
-            
+            List<Google.Apis.Drive.v3.Data.File> AllExistingFiles = new List<Google.Apis.Drive.v3.Data.File>();
             do
             {
                 ListAll = listRequest.Execute();
@@ -132,6 +132,7 @@ namespace DriveQuickstart
                         }
                         
                     }
+                    AllExistingFiles.Add(file);
                 }
                 listRequest.PageToken = ListAll.NextPageToken;
 
@@ -157,11 +158,11 @@ namespace DriveQuickstart
 
                     // convert string to stream
 
-                    bool UpdateFile = false;
+                    bool UpdateFile = true;
 
                     
                     
-                    foreach (var ExistingFile in AllFiles)
+                    foreach (var ExistingFile in AllExistingFiles)
                     {
                         string samplename = file.Name + appendtofile;
                         if (samplename.Equals(ExistingFile.Name))
