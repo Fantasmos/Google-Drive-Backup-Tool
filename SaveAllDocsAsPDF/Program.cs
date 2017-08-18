@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace DriveQuickstart
 {
@@ -19,11 +20,41 @@ namespace DriveQuickstart
         // at ~/.credentials/drive-dotnet-quickstart.json
         static string[] Scopes = { DriveService.Scope.Drive };
         static string ApplicationName = "Drive API .NET Quickstart";
-
+        static bool RanOnce = false;
         static void Main(string[] args)
         {
-            UserCredential credential;
+            /*
+            NotifyIcon tray = new NotifyIcon();
+            tray.Icon = "wfc.ico;
+            tray.Visible = true;
+            */
 
+            bool WantToKeepRunning = true;
+            if (args.Length > 0)
+            {
+                WantToKeepRunning = bool.Parse(args[0]);
+            }
+            int minutes = 5;
+            if (args.Length > 1)
+            {
+                minutes = int.Parse(args[1]);
+            }
+
+            Console.WriteLine("Timer set to: " + minutes);
+            
+           
+
+            do
+            {
+                CheckAndUpdate();
+                Thread.Sleep(minutes * 1000 * 60);
+            } while (WantToKeepRunning | (RanOnce == false));
+        }
+
+        static bool CheckAndUpdate()
+        {
+            UserCredential credential;
+            Console.WriteLine("Started running at: " + DateTime.Now.TimeOfDay);
             using (var stream =
                 new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
@@ -139,7 +170,7 @@ namespace DriveQuickstart
             } while (string.IsNullOrEmpty(ListAll.NextPageToken) == false);
 
             
-            Console.WriteLine("Files:");
+            
             
 
             foreach (var file in AllFiles)
@@ -148,7 +179,7 @@ namespace DriveQuickstart
 
                 if (file.MimeType.Equals(GoogleDoc))
                 {
-                    Console.WriteLine("{0}", file.MimeType);
+                    Console.WriteLine("Change found in: {0}",file.Name);
                     string appendtofile = "_Resaved.pdf";
                     Google.Apis.Drive.v3.Data.File fileMetadata = new Google.Apis.Drive.v3.Data.File()
                     {
@@ -214,23 +245,19 @@ namespace DriveQuickstart
                     using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedToken, false))
                     {
                         var response = service.Changes.GetStartPageToken().Execute();
-
-                        Console.WriteLine("Start token: " + response.StartPageTokenValue);
-
                         NewFileWrite.WriteLine(response.StartPageTokenValue);
                     }
-                    Console.WriteLine(file.Name);
 
                     using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedUnixDate, false))
                     {
                         NewFileWrite.WriteLine(DateTime.Now.Ticks);
                     }
-                    Console.WriteLine(file.Name);
+                   
                 }
-
-
-                
             }
+            Console.WriteLine("Finished updating");
+            RanOnce = true;
+            return true;
         }
     }
 }
