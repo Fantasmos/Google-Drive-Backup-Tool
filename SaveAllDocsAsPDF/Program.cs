@@ -14,6 +14,9 @@ using System.Windows.Forms;
 
 namespace DriveQuickstart
 {
+
+
+   
     class Program
     {
         // If modifying these scopes, delete your previously saved credentials
@@ -21,13 +24,91 @@ namespace DriveQuickstart
         static string[] Scopes = { DriveService.Scope.Drive };
         static string ApplicationName = "Drive API .NET Quickstart";
         static bool RanOnce = false;
+        static string SubfolderName = "ResavedPDFs";
+
+        static string GetOrCreateFolder (DriveService service, string SuperFolder)
+        {
+            Google.Apis.Drive.v3.Data.File SubFolder = GetFolderInSubfolder(service, SuperFolder);
+
+
+            if (SubFolder?.Id != null)
+            {
+                return SubFolder.Id;
+            }
+            else
+            {
+                var FolderMetadata = new Google.Apis.Drive.v3.Data.File()
+                {
+                    Name = SubfolderName,
+                    MimeType = "application/vnd.google-apps.folder"
+                };
+                if (string.IsNullOrEmpty(SuperFolder))
+                {
+                    //do nothing
+                }
+                else
+                {
+                    FolderMetadata.Parents = new List<string>();
+                    FolderMetadata.Parents.Add(SuperFolder);
+                }
+                var request = service.Files.Create(FolderMetadata);
+                request.Fields = "id";
+
+                var folder = request.Execute();
+                Console.WriteLine("Folder ID: " + folder.Id);
+
+                return folder.Id;
+            }
+        }
+
+        static Google.Apis.Drive.v3.Data.File GetFolderInSubfolder(DriveService driveService , string parent)
+        {
+            try
+            {
+                string pageToken = null;
+                do
+                {
+                    var request = driveService.Files.List();
+                    request.Q = "mimeType='application/vnd.google-apps.folder'";
+                    request.Spaces = "drive";
+                    request.Fields = "nextPageToken, files(id, name, parents)";
+                    request.PageToken = pageToken;
+                    var result = request.Execute();
+                    foreach (var file in result.Files)
+                    {
+                        if (string.IsNullOrEmpty(parent) | file?.Parents == null)
+                        {
+                            if (file.Name.Equals(SubfolderName))
+                            {
+                                return file;
+                            }
+
+                        }
+                        else
+                        {
+                            if (file.Name.Equals(SubfolderName) && file.Parents.Contains(parent))
+                            {
+                                return file;
+                            }
+
+                        }
+                    }
+                    pageToken = result.NextPageToken;
+                } while (pageToken != null);
+
+                return null;
+            }
+            catch
+            {
+                Console.WriteLine("Threw error");
+                return null;
+            }
+        }
+
+
         static void Main(string[] args)
         {
-            /*
-            NotifyIcon tray = new NotifyIcon();
-            tray.Icon = "wfc.ico;
-            tray.Visible = true;
-            */
+           
 
             bool WantToKeepRunning = true;
             if (args.Length > 0)
@@ -180,12 +261,26 @@ namespace DriveQuickstart
                 if (file.MimeType.Equals(GoogleDoc))
                 {
                     Console.WriteLine("Change found in: {0}",file.Name);
+
                     string appendtofile = "_Resaved.pdf";
+
                     Google.Apis.Drive.v3.Data.File fileMetadata = new Google.Apis.Drive.v3.Data.File()
                     {
                         Name = file.Name + appendtofile,
                         Parents = file.Parents
                     };
+                    if (file?.Parents?.Count == null)
+                    {
+                        fileMetadata.Parents = new List<string>();
+                        fileMetadata.Parents.Add(GetOrCreateFolder(service, null));
+                      
+                        
+                    }
+                    else
+                    {
+                        fileMetadata.Parents.Add(GetOrCreateFolder(service, file.Parents[0]));
+                    }
+                    
 
                     // convert string to stream
 
@@ -196,6 +291,7 @@ namespace DriveQuickstart
                     foreach (var ExistingFile in AllExistingFiles)
                     {
                         string samplename = file.Name + appendtofile;
+
                         if (samplename.Equals(ExistingFile.Name))
                         {
                             bool CanDoComparison = true;
@@ -206,7 +302,6 @@ namespace DriveQuickstart
                             if (CanDoComparison) {
                                 if (Enumerable.SequenceEqual(file.Parents, ExistingFile.Parents))
                                 {
-                                    
                                         try 
                                         {
                                             service.Files.Delete(ExistingFile.Id).Execute();
@@ -219,15 +314,25 @@ namespace DriveQuickstart
                                         {
                                             UpdateFile = true;
                                         }
-                                        
-                                    }
-                                
+                                }
                             }
+                        } 
+                    }
+                    
+                    //Check this isn't a file that is currently open and being edited, wait till edits are made before resaving
+                    foreach (var fileRHS in AllFiles)
+                    {
+                        if (file.Id.Equals(fileRHS.Id) && file?.Parents == null)
+                        {
+                            Console.WriteLine(file.Name + "Is currently being modified, we will wait until changes have been completed");
+                            UpdateFile = false;
+                            break;
                         }
                     }
-
                     if (UpdateFile)
                     {
+                        
+                        
                         //Create New File
                         var stream = new System.IO.MemoryStream();
                         service.Files.Export(file.Id, "application/pdf").Download(stream);
