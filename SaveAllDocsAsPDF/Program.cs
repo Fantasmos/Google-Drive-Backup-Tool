@@ -278,6 +278,7 @@ namespace DriveQuickstart
                     }
                     else
                     {
+                        fileMetadata.Parents = new List<string>();
                         fileMetadata.Parents.Add(GetOrCreateFolder(service, file.Parents[0]));
                     }
                     
