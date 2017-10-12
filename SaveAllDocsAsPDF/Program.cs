@@ -123,8 +123,6 @@ namespace DriveQuickstart
 
             Console.WriteLine("Timer set to: " + minutes);
             
-           
-
             do
             {
                 CheckAndUpdate();
@@ -242,7 +240,6 @@ namespace DriveQuickstart
                         if (file != null) {
                             AllFiles.Add(file);
                         }
-                        
                     }
                     AllExistingFiles.Add(file);
                 }
@@ -301,21 +298,33 @@ namespace DriveQuickstart
 
                             //If they're both null, or both are not null, we keep executing 
                             if (CanDoComparison) {
-                                if (Enumerable.SequenceEqual(file.Parents, ExistingFile.Parents))
+                                foreach (string entry in ExistingFile.Parents)
                                 {
-                                        try 
+                                    foreach (string secondentry in file.Parents)
+                                    {
+                                        if (entry.Equals(secondentry))
                                         {
-                                            service.Files.Delete(ExistingFile.Id).Execute();
+                                            try
+                                            {
+                                                service.Files.Delete(ExistingFile.Id).Execute();
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Console.WriteLine("There was an error deleting: {0} with id: {1}", ExistingFile.Name, ExistingFile.Id);
+                                            }
+                                            finally
+                                            {
+                                                UpdateFile = true;
+                                            }
                                         }
-                                        catch (Exception ex)
-                                        {
-                                            Console.WriteLine("There was an error deleting: {0} with id: {1}", ExistingFile.Name, ExistingFile.Id);
-                                        }
-                                        finally
-                                        {
-                                            UpdateFile = true;
-                                        }
+                                    }
                                 }
+                                
+                            } else
+                            {
+                                Console.WriteLine("Not updating");
+                                UpdateFile = false;
+
                             }
                         } 
                     }
