@@ -255,7 +255,7 @@ namespace DriveQuickstart
             {
                 string GoogleDoc = "application/vnd.google-apps.document";
 
-                if (file.MimeType.Equals(GoogleDoc))
+                if (file.MimeType.Equals(GoogleDoc) && (file?.Parents != null))
                 {
                     Console.WriteLine("Change found in: {0}",file.Name);
 
@@ -293,38 +293,26 @@ namespace DriveQuickstart
                         if (samplename.Equals(ExistingFile.Name))
                         {
                             bool CanDoComparison = true;
+                            CanDoComparison = ((file?.Parents != null) );
+                            if (CanDoComparison)
+                            {
+                                string PDFID = GetOrCreateFolder(service, file.Parents[0]);
 
-                            CanDoComparison = ((file?.Parents != null) & (ExistingFile?.Parents != null));
-
-                            //If they're both null, or both are not null, we keep executing 
-                            if (CanDoComparison) {
-                                foreach (string entry in ExistingFile.Parents)
+                                if (ExistingFile.Parents.Contains(PDFID))
                                 {
-                                    foreach (string secondentry in file.Parents)
+                                    try
                                     {
-                                        if (entry.Equals(secondentry))
-                                        {
-                                            try
-                                            {
-                                                service.Files.Delete(ExistingFile.Id).Execute();
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                Console.WriteLine("There was an error deleting: {0} with id: {1}", ExistingFile.Name, ExistingFile.Id);
-                                            }
-                                            finally
-                                            {
-                                                UpdateFile = true;
-                                            }
-                                        }
+                                        service.Files.Delete(ExistingFile.Id).Execute();
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine("There was an error deleting: {0} with id: {1}", ExistingFile.Name, ExistingFile.Id);
+                                    }
+                                    finally
+                                    {
+                                        UpdateFile = true;
                                     }
                                 }
-                                
-                            } else
-                            {
-                                Console.WriteLine("Not updating");
-                                UpdateFile = false;
-
                             }
                         } 
                     }
@@ -341,8 +329,6 @@ namespace DriveQuickstart
                     }
                     if (UpdateFile)
                     {
-                        
-                        
                         //Create New File
                         var stream = new System.IO.MemoryStream();
                         service.Files.Export(file.Id, "application/pdf").Download(stream);
