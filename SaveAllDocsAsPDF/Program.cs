@@ -19,6 +19,21 @@ namespace DriveQuickstart
    
     class Program
     {
+
+        static void ResaveFile (DriveService service, Google.Apis.Drive.v3.Data.File file, Google.Apis.Drive.v3.Data.File fileMetadata, string metadatatype = "application/pdf")
+        {                        //Create New File
+            var stream = new System.IO.MemoryStream();
+            service.Files.Export(file.Id, metadatatype).Download(stream);
+            using (stream)
+            {
+                FilesResource.CreateMediaUpload request;
+                request = service.Files.Create(fileMetadata, stream, metadatatype);
+
+                request.Fields = "id";
+                request.Upload();
+                var item = request.ResponseBody;
+            }
+        }
         // If modifying these scopes, delete your previously saved credentials
         // at ~/.credentials/drive-dotnet-quickstart.json
         static string[] Scopes = { DriveService.Scope.Drive };
@@ -270,8 +285,6 @@ namespace DriveQuickstart
                     {
                         fileMetadata.Parents = new List<string>();
                         fileMetadata.Parents.Add(GetOrCreateFolder(service, null));
-                      
-                        
                     }
                     else
                     {
@@ -329,18 +342,9 @@ namespace DriveQuickstart
                     }
                     if (UpdateFile)
                     {
-                        //Create New File
-                        var stream = new System.IO.MemoryStream();
-                        service.Files.Export(file.Id, "application/pdf").Download(stream);
-                        using (stream)
-                        {
-                            FilesResource.CreateMediaUpload request;
-                            request = service.Files.Create(fileMetadata, stream, "application/pdf");
-
-                            request.Fields = "id";
-                            request.Upload();
-                            var item = request.ResponseBody;
-                        }
+                        ResaveFile(service, file, fileMetadata, "application/pdf");
+                        fileMetadata.Name = file.Name + "_resaved.odt";
+                        ResaveFile(service, file, fileMetadata, "application/vnd.oasis.opendocument.text");
                     }
 
                     using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedToken, false))
