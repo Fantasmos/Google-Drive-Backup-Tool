@@ -158,10 +158,6 @@ namespace DriveQuickstart
 
                     format[] AllFormats = { pdf, OpenDocument };
 
-
-                    //TODO refactor into a seperate class
-                   ;
-
                     foreach (format format in AllFormats)
                     {
                         string appendtofile = "_resaved." + format.name;
@@ -202,17 +198,17 @@ namespace DriveQuickstart
 
                         ResaveFile(service, file, fileMetadata, format.MimeHeader);
                     }
+                }
 
-                    using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedToken, false))
-                    {
-                        var response = service.Changes.GetStartPageToken().Execute();
-                        NewFileWrite.WriteLine(response.StartPageTokenValue);
-                    }
+                using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedToken, false))
+                {
+                    var response = service.Changes.GetStartPageToken().Execute();
+                    NewFileWrite.WriteLine(response.StartPageTokenValue);
+                }
 
-                    using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedUnixDate, false))
-                    {
-                        NewFileWrite.WriteLine(DateTime.Now.Ticks);
-                    }
+                using (System.IO.StreamWriter NewFileWrite = new System.IO.StreamWriter(LastModifiedUnixDate, false))
+                {
+                    NewFileWrite.WriteLine(DateTime.Now.Ticks);
                 }
             }
             Console.WriteLine("Finished updating");
