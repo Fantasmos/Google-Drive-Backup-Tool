@@ -60,6 +60,7 @@ namespace DriveQuickstart
                     //If File is Valid and needs to be updated
                     if ((file.ModifiedTime.Value > DateTimeProgramLastRan) && file.MimeType.Equals(conversion.NativeFormat) && (file?.Parents != null))
                     {
+
                         Console.WriteLine("Change found in: {0}", file.Name);
 
                         foreach (format OutputFormat in conversion.Outputs)
@@ -97,7 +98,7 @@ namespace DriveQuickstart
             else
             {
                 FolderMetadata.Parents = new List<string>();
-                FolderMetadata.Parents.Add(FolderName);
+                FolderMetadata.Parents.Add(Location);
             }
             var request = service.Files.Create(FolderMetadata);
             request.Fields = "id";
@@ -372,6 +373,7 @@ namespace DriveQuickstart
             Conversions GoogleDoc_To_ODT_and_PDF = GDocs();
 
             List<Conversions> AllConversions = new List<Conversions>();
+            AllConversions.Add(GoogleDoc_To_ODT_and_PDF);
             return AllConversions;
         }
 
