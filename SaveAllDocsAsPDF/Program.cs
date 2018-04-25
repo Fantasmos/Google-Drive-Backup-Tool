@@ -66,10 +66,10 @@ namespace DriveQuickstart
                         foreach (format OutputFormat in conversion.Outputs)
                         {
 
-                            string Resaves_FolderID = Get_Or_Create_Folder(service, file.Parents[0], "Resaved");
+                            string Resaves_FolderID = file.Parents[0];
 
                             var fileMetadata = new Google.Apis.Drive.v3.Data.File();
-                            fileMetadata.Name = file.Name + "_resaved." + OutputFormat.name;
+                            fileMetadata.Name = file.Name + OutputFormat.name;
                             fileMetadata.Parents = new List<string>() { Resaves_FolderID };
 
                             var Existing_File = Get_File_By_Name_And_SuperFolder(Resaves_FolderID, fileMetadata.Name, All_Files);
@@ -134,6 +134,8 @@ namespace DriveQuickstart
             OpenDocument.name = "odt";
             OpenDocument.MimeHeader = "application/vnd.oasis.opendocument.text";
 
+            
+
             format[] AllFormats =
                 {
                     pdf,
@@ -145,7 +147,20 @@ namespace DriveQuickstart
             GoogleDoc_To_ODT_and_PDF.NativeFormat = "application/vnd.google-apps.document";
             GoogleDoc_To_ODT_and_PDF.Outputs = AllFormats;
 
-            return GoogleDoc_To_ODT_and_PDF;
+
+            format docx = new format();
+            docx.name = ".docx";
+            docx.MimeHeader = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            format[] AllFormats2 =
+                {
+                    docx
+                };
+
+            Conversions GDOC_TO_DOCX;
+            GDOC_TO_DOCX.NativeFormat = "application/vnd.google-apps.document";
+            GDOC_TO_DOCX.Outputs = AllFormats2;
+
+            return GDOC_TO_DOCX;
         }
 
         private static List<Google.Apis.Drive.v3.Data.File> Get_All_Modified_Files(string TokenData, DriveService service)
@@ -241,6 +256,7 @@ namespace DriveQuickstart
         private static string Get_Or_Create_Folder(DriveService service, string SuperFolder, string Folder_Name)
         {
             Google.Apis.Drive.v3.Data.File Folder = Get_Folder(service, SuperFolder, Folder_Name);
+            
             if (Folder?.Id != null)
             {
                 return Folder.Id;
